@@ -28,7 +28,7 @@ class AuthController extends Controller
 
         // jika bisa di lewati yang atas maka next nya
 
-        $user = user::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
@@ -41,7 +41,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Registrasi Berhasil',
             'data' => $user,
-            'acces_token' => $token,
+            'access_token' => $token,
             'token_type' => 'Bearer'
         ], 201);
     }
