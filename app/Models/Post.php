@@ -15,7 +15,7 @@ class Post extends Model
             function (Blueprint $table) {
                 $table->id();
                 // mengabung kan user id dengan
-                $table->foreign('user_id')->constrained()->onDelete('cascade');
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
                 $table->string('title');
                 $table->text('new_content');
                 $table->string('image')->nullable();
