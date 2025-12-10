@@ -2,26 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
 class Post extends Model
 {
-    public function up(): void
-    {
-        Schema::create(
-            'posts',
-            function (Blueprint $table) {
-                $table->id();
-                // mengabung kan user id dengan
-                $table->foreignId('user_id')->constrained()->onDelete('cascade');
-                $table->string('title');
-                $table->text('new_content');
-                $table->string('image')->nullable();
+    use HasFactory;
+    protected $fillable = [
+        'user_id',
+        'title',
+        'news_content', // Pastikan pakai 's'
+        'image'
+    ];
 
-                $table->timestamps();
-            }
-        );
+    // Relasi ke User
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
