@@ -2,19 +2,23 @@
 
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\PostController;
 
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
-
-// jalur Public tanpa Kunci
+// === AREA BEBAS (PUBLIC) ===
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-// jalur harus login dan register
-// Middleware 'auth:sanctum' ini adalah satpam untuk pengecekan
+// GET (Lihat) ditaruh di LUAR agar bisa diakses umum
+Route::get('/posts', [PostController::class, 'index']);
+Route::get('/posts/{id}', [PostController::class, 'show']);
 
+// === AREA MEMBER (PROTECTED) ===
 Route::middleware('auth:sanctum')->group(function () {
-    // fitur logout
+
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Create, Update, Delete ditaruh DI DALAM (Butuh Token)
+    Route::post('/posts', [PostController::class, 'store']);
+    Route::put('/posts/{id}', [PostController::class, 'update']);
+    Route::delete('/posts/{id}', [PostController::class, 'destroy']);
 });
