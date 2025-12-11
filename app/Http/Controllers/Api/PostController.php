@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Post;               // Import Model
-use App\Http\Resources\PostResource; // Import Resource (Format Tampilan)
-use App\Http\Requests\PostRequest;   // Import Request (Validasi)
+use App\Models\Post;
+use App\Http\Resources\PostResource;
+// Import semua Request yang sudah kita buat/sepakati
+use App\Http\Requests\PostRequest;
+use App\Http\Requests\UpdatePostRequest;
 
 class PostController extends Controller
 {
@@ -18,6 +20,7 @@ class PostController extends Controller
     }
 
     // 2. LIHAT DETAIL SATU BERITA (Public)
+    // Menggunakan findOrFail untuk response 404 otomatis
     public function show($id)
     {
         $post = Post::with('user')->findOrFail($id);
@@ -27,13 +30,18 @@ class PostController extends Controller
     // 3. POSTING BERITA BARU (Wajib Login)
     public function store(PostRequest $request)
     {
-        // Validasi otomatis jalan di PostRequest
+        // 1. Ambil data yang sudah lolos validasi dari PostRequest
+        $data = $request->validated();
 
-        $post = $request->user()->posts()->create([
-            'title' => $request->title,
-            'news_content' => $request->news_content,
-            'image' => $request->image,
-        ]);
+        // 2. Tambahkan user_id (penulis) dari user yang sedang login
+        $data['user_id'] = $request->user()->id;
+
+        // 3. Simpan data ke database (Termasuk kolom 'image' yang berisi string)
+        $post = Post::create($data);
+
+        // Menggunakan user()->posts()->create($data) juga bisa, asalkan 
+        // kolom 'user_id' tidak ada di array $data, atau diset di fillable.
+        // Post::create($data) lebih aman dan eksplisit.
 
         return response()->json([
             'message' => 'Berita berhasil diposting',
@@ -42,31 +50,20 @@ class PostController extends Controller
     }
 
     // 4. UPDATE BERITA (Wajib Login & Pemilik Asli)
-    public function update(Request $request, $id)
+    // Mengganti Request $request menjadi UpdatePostRequest $request
+    public function update(UpdatePostRequest $request, $id)
     {
-        $post = Post::find($id);
+        // findOrFail() akan memberikan 404 jika ID tidak ada
+        $post = Post::findOrFail($id);
 
-        if (!$post) {
-            return response()->json(['message' => 'Berita tidak ditemukan'], 404);
-        }
+        // Cek kepemilikan sudah diurus di UpdatePostRequest::authorize().
+        // Jika user bukan pemilik, Request akan otomatis melempar 403 Forbidden.
 
-        // Cek apakah yang edit adalah pemiliknya?
-        if ($request->user()->id !== $post->user_id) {
-            return response()->json(['message' => 'Anda bukan pemilik berita ini!'], 403);
-        }
+        // Ambil data yang sudah divalidasi dari UpdatePostRequest
+        $data = $request->validated();
 
-        // Validasi input edit
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'news_content' => 'required|string',
-            'image' => 'nullable|string',
-        ]);
-
-        $post->update([
-            'title' => $request->title,
-            'news_content' => $request->news_content,
-            'image' => $request->image,
-        ]);
+        // Lakukan update
+        $post->update($data);
 
         return response()->json([
             'message' => 'Berita berhasil diupdate',
@@ -77,11 +74,7 @@ class PostController extends Controller
     // 5. HAPUS BERITA (Wajib Login & Pemilik Asli)
     public function destroy(Request $request, $id)
     {
-        $post = Post::find($id);
-
-        if (!$post) {
-            return response()->json(['message' => 'Berita tidak ditemukan'], 404);
-        }
+        $post = Post::findOrFail($id); // findOrFail untuk 404
 
         // Cek kepemilikan
         if ($request->user()->id !== $post->user_id) {
