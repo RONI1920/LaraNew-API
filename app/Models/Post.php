@@ -16,8 +16,16 @@ class Post extends Model
     ];
 
     // Relasi ke User
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        // Relasi: Satu Postingan dimiliki oleh satu User
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function posts()
+    {
+        // Relasi: Satu User (penulis) punya banyak Postingan
+        return $this->hasMany(Post::class, 'user_id', 'id');
     }
 }
