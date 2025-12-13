@@ -12,9 +12,14 @@ use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with('user')->latest()->paginate(10);
+
+        // fitur filter jika ada parameter:  ?Keyword=value di url
+        $posts = Post::with('user')->when($request->search, function ($query) use ($request) {
+            $query->where('title', 'like', "%{$request->search}%")
+                ->orWhere('news_content', 'like', "%{$request->search}%");
+        })->latest()->paginate(10);
         return PostResource::collection($posts);
     }
 

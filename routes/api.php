@@ -1,8 +1,10 @@
 <?php
 
+// Memisahkan Logika Bisnis ke dalam Controller
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PostController;
+
 
 // PUBLIC
 Route::post('/register', [AuthController::class, 'register']);
