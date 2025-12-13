@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Opsional: Menambahkan foreign key agar data konsisten
-            // $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

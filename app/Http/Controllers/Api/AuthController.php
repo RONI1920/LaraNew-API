@@ -9,8 +9,6 @@ use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Testing\Fluent\Concerns\Has;
 
 class AuthController extends Controller
 {
@@ -42,14 +40,18 @@ class AuthController extends Controller
     {
         // validate di handle oleh LoginRequest
 
+        //user masuk kita cek email nya
         $user = User::where('email', $request->email)->first();
 
+        // kita amankan pssword dan email nya jika terjadi kesalahan
         if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Email atau Password Salah'
             ], 401);
         }
 
+
+        // jika pengecekan Email dan Password Berhasil maka User kita Kasih Token untuk masuk
         $token = $user->createToken('auth_token')->plainTextToken;
         return response()->json([
             'message' => 'Login Sukses',
@@ -59,6 +61,8 @@ class AuthController extends Controller
         ], 200);
     }
 
+
+    // jika user keluar maka kita bakar token masuk.
     public function Logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
