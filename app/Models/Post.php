@@ -11,12 +11,11 @@ class Post extends Model
     protected $fillable = [
         'user_id',
         'title',
-        'news_content', // Pastikan pakai 's'
+        'news_content',
         'image'
     ];
 
     // Relasi ke User
-
     public function user()
     {
         // Relasi: Satu Postingan dimiliki oleh satu User

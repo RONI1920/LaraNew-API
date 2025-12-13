@@ -6,42 +6,35 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Post;
 use App\Http\Resources\PostResource;
-// Import semua Request yang sudah kita buat/sepakati
 use App\Http\Requests\PostRequest;
 use App\Http\Requests\UpdatePostRequest;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
-    // 1. LIHAT SEMUA BERITA (Public)
     public function index()
     {
         $posts = Post::with('user')->latest()->paginate(10);
         return PostResource::collection($posts);
     }
 
-    // 2. LIHAT DETAIL SATU BERITA (Public)
-    // Menggunakan findOrFail untuk response 404 otomatis
     public function show($id)
     {
         $post = Post::with('user')->findOrFail($id);
         return new PostResource($post);
     }
 
-    // 3. POSTING BERITA BARU (Wajib Login)
     public function store(PostRequest $request)
     {
-        // 1. Ambil data yang sudah lolos validasi dari PostRequest
         $data = $request->validated();
-
-        // 2. Tambahkan user_id (penulis) dari user yang sedang login
         $data['user_id'] = $request->user()->id;
 
-        // 3. Simpan data ke database (Termasuk kolom 'image' yang berisi string)
-        $post = Post::create($data);
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('posts', 'public');
+            $data['image'] = $imagePath;
+        }
 
-        // Menggunakan user()->posts()->create($data) juga bisa, asalkan 
-        // kolom 'user_id' tidak ada di array $data, atau diset di fillable.
-        // Post::create($data) lebih aman dan eksplisit.
+        $post = Post::create($data);
 
         return response()->json([
             'message' => 'Berita berhasil diposting',
@@ -49,42 +42,48 @@ class PostController extends Controller
         ], 201);
     }
 
-    // 4. UPDATE BERITA (Wajib Login & Pemilik Asli)
-    // Mengganti Request $request menjadi UpdatePostRequest $request
     public function update(UpdatePostRequest $request, $id)
     {
-        // findOrFail() akan memberikan 404 jika ID tidak ada
-        $post = Post::findOrFail($id);
-
-        // Cek kepemilikan sudah diurus di UpdatePostRequest::authorize().
-        // Jika user bukan pemilik, Request akan otomatis melempar 403 Forbidden.
-
-        // Ambil data yang sudah divalidasi dari UpdatePostRequest
+        // 1. Cari Data
+        $postRecord = Post::findOrFail($id);
+        // 2. Ambil Data Validasi (title & news_content)
         $data = $request->validated();
 
-        // Lakukan update
-        $post->update($data);
+        // 3. Logika Gambar (Akan di-skip otomatis jika tidak ada file)
+        if ($request->hasFile('image')) {
+            if ($postRecord->image && Storage::disk('public')->exists($postRecord->image)) {
+                Storage::disk('public')->delete($postRecord->image);
+            }
+            $imagePath = $request->file('image')->store('posts', 'public');
+            $data['image'] = $imagePath;
+        }
+
+        // 4. Update Database
+        $postRecord->update($data);
+
+        // 5. Refresh agar response update
+        $postRecord->refresh();
 
         return response()->json([
             'message' => 'Berita berhasil diupdate',
-            'data' => new PostResource($post),
+            'data' => new PostResource($postRecord),
         ], 200);
     }
 
-    // 5. HAPUS BERITA (Wajib Login & Pemilik Asli)
+
     public function destroy(Request $request, $id)
     {
-        $post = Post::findOrFail($id); // findOrFail untuk 404
+        $post = Post::findOrFail($id);
 
-        // Cek kepemilikan
         if ($request->user()->id !== $post->user_id) {
-            return response()->json(['message' => 'Dilarang menghapus berita orang lain!'], 403);
+            return response()->json(['message' => 'Dilarang!'], 403);
+        }
+
+        if ($post->image) {
+            Storage::disk('public')->delete($post->image);
         }
 
         $post->delete();
-
-        return response()->json([
-            'message' => 'Berita berhasil dihapus'
-        ], 200);
+        return response()->json(['message' => 'Berita berhasil dihapus'], 200);
     }
 }
